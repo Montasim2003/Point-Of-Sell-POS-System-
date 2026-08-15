@@ -359,18 +359,6 @@ export const INITIAL_STAFF: UserStaff[] = [
     totalSalesCount: 88,
     totalSalesAmount: 96400,
   },
-  {
-    id: 'staff-3',
-    name: 'Sadia Sultana (Shift Lead)',
-    role: 'manager',
-    pin: '2222',
-    phone: '01933-445566',
-    email: 'sadia@smartpos.com',
-    avatarColor: 'from-purple-600 to-pink-700',
-    isActive: true,
-    totalSalesCount: 52,
-    totalSalesAmount: 64200,
-  },
 ];
 
 export const INITIAL_EXPENSES: Expense[] = [
@@ -517,8 +505,8 @@ export function generateInitialSales(): SaleOrder[] {
       id: 'ord-w-2',
       invoiceNumber: 'INV-20260813-001',
       date: '2026-08-13T17:10:00.000Z',
-      cashierId: 'staff-3',
-      cashierName: 'Sadia Sultana',
+      cashierId: 'staff-1',
+      cashierName: 'Jubair Montasim Noman',
       customerId: 'cust-5',
       customerName: 'Nazmul Islam',
       items: [
@@ -602,8 +590,8 @@ export function generateInitialSales(): SaleOrder[] {
       id: 'ord-w-5',
       invoiceNumber: 'INV-20260810-001',
       date: '2026-08-10T18:15:00.000Z',
-      cashierId: 'staff-3',
-      cashierName: 'Sadia Sultana',
+      cashierId: 'staff-1',
+      cashierName: 'Jubair Montasim Noman',
       customerId: 'cust-3',
       customerName: 'Dr. Shahina Akter',
       items: [
@@ -802,8 +790,8 @@ export function generateInitialSales(): SaleOrder[] {
       id: 'ord-m3-1',
       invoiceNumber: 'INV-20260314-001',
       date: '2026-03-14T17:40:00.000Z',
-      cashierId: 'staff-3',
-      cashierName: 'Sadia Sultana',
+      cashierId: 'staff-1',
+      cashierName: 'Jubair Montasim Noman',
       customerId: 'cust-4',
       customerName: 'Mahbubur Rahman',
       items: [

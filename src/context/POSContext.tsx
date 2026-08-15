@@ -153,18 +153,6 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
 
-  // Settings
-  const [settings, setSettings] = useState<StoreSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
-  });
-
-  // Staff
-  const [staff, setStaff] = useState<UserStaff[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.STAFF);
-    return saved ? JSON.parse(saved) : INITIAL_STAFF;
-  });
-
   const [activeCashierId, setActiveCashierId] = useState<string>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_STAFF_ID);
     return saved || 'staff-1';
@@ -186,42 +174,92 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved === 'true';
   });
 
-  // Products & Categories
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
-
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-  });
-
-  // Customers
-  const [customers, setCustomers] = useState<Customer[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.CUSTOMERS);
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-  });
-
+  // Data State (Backend Driven)
+  const [settings, setSettings] = useState<StoreSettings>(INITIAL_SETTINGS);
+  const [staff, setStaff] = useState<UserStaff[]>(INITIAL_STAFF);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [sales, setSales] = useState<SaleOrder[]>([]);
+  const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // Sales
-  const [sales, setSales] = useState<SaleOrder[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SALES);
-    return saved ? JSON.parse(saved) : generateInitialSales();
-  });
+  // Initial Fetch from Backend
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const endpoints = ['settings', 'staff', 'products', 'categories', 'customers', 'sales', 'heldCarts', 'expenses'];
+        for (const endpoint of endpoints) {
+          let data = null;
+          try {
+            const res = await fetch(`/api/store/${endpoint}`);
+            if (res.ok) {
+              data = await res.json();
+            }
+          } catch (fetchErr) {
+            console.warn(`Server fetch failed for ${endpoint}, falling back to demo data.`);
+          }
 
-  // Held Carts
-  const [heldCarts, setHeldCarts] = useState<HeldCart[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.HELD_CARTS);
-    return saved ? JSON.parse(saved) : [];
-  });
+          if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
+            if (endpoint === 'settings') setSettings(data);
+            else if (endpoint === 'staff') setStaff(data);
+            else if (endpoint === 'products') setProducts(data);
+            else if (endpoint === 'categories') setCategories(data);
+            else if (endpoint === 'customers') setCustomers(data);
+            else if (endpoint === 'sales') setSales(data);
+            else if (endpoint === 'heldCarts') setHeldCarts(data);
+            else if (endpoint === 'expenses') setExpenses(data);
+          } else {
+            // Write defaults to backend if missing or empty
+            const writeDefault = async (col: string, val: any) => {
+              try {
+                await fetch(`/api/store/${col}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(val),
+                });
+              } catch(e) {}
+            };
+            if (endpoint === 'settings') { setSettings(INITIAL_SETTINGS); writeDefault(endpoint, INITIAL_SETTINGS); }
+            else if (endpoint === 'staff') { setStaff(INITIAL_STAFF); writeDefault(endpoint, INITIAL_STAFF); }
+            else if (endpoint === 'products') { setProducts(INITIAL_PRODUCTS); writeDefault(endpoint, INITIAL_PRODUCTS); }
+            else if (endpoint === 'categories') { setCategories(INITIAL_CATEGORIES); writeDefault(endpoint, INITIAL_CATEGORIES); }
+            else if (endpoint === 'customers') { setCustomers(INITIAL_CUSTOMERS); writeDefault(endpoint, INITIAL_CUSTOMERS); }
+            else if (endpoint === 'sales') { const initSales = generateInitialSales(); setSales(initSales); writeDefault(endpoint, initSales); }
+            else if (endpoint === 'expenses') { setExpenses(INITIAL_EXPENSES); writeDefault(endpoint, INITIAL_EXPENSES); }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load data', err);
+      }
+    };
+    loadData();
+  }, []);
 
-  // Expenses
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
-  });
+  // Sync Data State to Backend
+  const saveToBackend = async (collection: string, data: any) => {
+    // Avoid saving if empty initially (unless intentionally cleared)
+    // Actually, saving on every state change is fine.
+    try {
+      await fetch(`/api/store/${collection}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      console.error(`Failed to save ${collection} to server`, err);
+    }
+  };
+
+  useEffect(() => { if (settings.currency) saveToBackend('settings', settings); }, [settings]);
+  useEffect(() => { if (staff.length > 0) saveToBackend('staff', staff); }, [staff]);
+  useEffect(() => { saveToBackend('products', products); }, [products]);
+  useEffect(() => { saveToBackend('categories', categories); }, [categories]);
+  useEffect(() => { saveToBackend('customers', customers); }, [customers]);
+  useEffect(() => { saveToBackend('sales', sales); }, [sales]);
+  useEffect(() => { saveToBackend('heldCarts', heldCarts); }, [heldCarts]);
+  useEffect(() => { saveToBackend('expenses', expenses); }, [expenses]);
 
   // Active Terminal Cart
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -255,15 +293,7 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [theme]);
 
-  // Sync to LocalStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staff));
-  }, [staff]);
-
+  // Sync UI state to LocalStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_STAFF_ID, activeCashierId);
   }, [activeCashierId]);
@@ -283,30 +313,6 @@ export const POSProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.IS_LOCKED, isLocked ? 'true' : 'false');
   }, [isLocked]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CUSTOMERS, JSON.stringify(customers));
-  }, [customers]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
-  }, [sales]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.HELD_CARTS, JSON.stringify(heldCarts));
-  }, [heldCarts]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
-  }, [expenses]);
 
   // Theme Handlers
   const toggleTheme = () => {
