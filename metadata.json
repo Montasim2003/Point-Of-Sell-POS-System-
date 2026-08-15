@@ -1,0 +1,6 @@
+{
+  "name": "Smart POS Pro",
+  "description": "Full-featured modern Point of Sale (POS) system with Billing, Stock & Inventory, Customer & Staff management, Category control, Sales Reporting, accurate Weekly/Monthly/Yearly Profit & Loss analytics, and professional PDF invoice generation in Light & Dark modes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
